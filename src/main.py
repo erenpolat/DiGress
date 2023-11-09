@@ -19,6 +19,7 @@ from diffusion_model_discrete import DiscreteDenoisingDiffusion
 from diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
 
 
+
 warnings.filterwarnings("ignore", category=PossibleUserWarning)
 
 
@@ -220,4 +221,7 @@ def main(cfg: DictConfig):
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    from datasets import powerflow_dataset
+    pd = powerflow_dataset.PowerDataset(dataset_name="power", split="train", root="../../data")
+    pd.process()
