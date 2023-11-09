@@ -1,5 +1,8 @@
 import os.path as osp
-from src.flow_utils import *
+import os
+from src.flow_utils.graphutils import *
+from src.flow_utils.flow import *
+from src.flow_utils._aux import *
 import torch
 import pickle
 from torch_geometric.data import Dataset, download_url
@@ -11,8 +14,8 @@ class PowerDataset(Dataset):
         self.dataset_name = "power"
         self.split = split
         self.num_graphs = 200
-        super().__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        #super().__init__(root, transform, pre_transform, pre_filter)
+        #self.data, self.slices = torch.load(self.processed_paths[0])
 
     @property
     def raw_file_names(self):
@@ -24,7 +27,9 @@ class PowerDataset(Dataset):
 
     def process(self):
         # Reading power data
-        data_folder = "../../data/"
+        cwd = os.getcwd()
+        print(cwd)
+        data_folder = "../new_data/"
         G = read_net(data_folder + self.dataset_name + "_net.csv")
 
         pfile = open(data_folder + "features_" + self.dataset_name + ".pkl", 'rb')
@@ -68,6 +73,3 @@ class PowerGraphDataModule(AbstractDataModule):
 
     def __getitem__(self, item):
         return self.inner[item]
-    
-pd = PowerDataset(dataset_name="power", split="train", root="../../data")
-pd.process()
