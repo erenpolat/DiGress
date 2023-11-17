@@ -19,32 +19,43 @@ class TaxiDataset(InMemoryDataset):
 
     @property
     def raw_file_names(self):
-        return ['some_file_1', 'some_file_2', ...]
+        return ['train.pt', 'val.pt', 'test.pt']
 
     @property
     def processed_file_names(self):
-        return ['data_1.pt', 'data_2.pt', ...]
+            return [self.split + '.pt']
 
     def process(self):
-        # Reading power data
-        cwd = os.getcwd()
-        print(cwd)
-        data_folder = "../new_data/"
-        G = read_net(data_folder + self.dataset_name + "_net.csv")
+        # Reading taxi data
 
-        pfile = open(data_folder + "features_" + self.dataset_name + ".pkl", 'rb')
-        features = pickle.load(pfile)
-        pfile.close()
-
-        pfile = open(data_folder + "flows_" + self.dataset_name + ".pkl", 'rb')
-        flows = pickle.load(pfile)
-        pfile.close()
-
+        # Train-test-val
+           
         #Preprocessing
-        G, flows, features = make_non_neg_norm(G, flows, features) #Converts flow estimation instance to a non-negative one, i.e. where every flow is non-negative.
-        features = normalize_features(features) #Normalize features to 0-1
-        print("erenpolat")
-        print(G.shape)
+
+
+
+        data_list = []
+        for adj in raw_dataset:
+            n = adj.shape[-1]
+            X = torch.ones(n, 1, dtype=torch.float)
+            y = torch.zeros([1, 0]).float()
+            edge_index, _ = torch_geometric.utils.dense_to_sparse(adj)
+            edge_attr = torch.zeros(edge_index.shape[-1], 1, dtype=torch.float)
+            edge_attr[:, 1] = 1
+            num_nodes = n * torch.ones(1, dtype=torch.long)
+            data = torch_geometric.data.Data(x=X, edge_index=edge_index, edge_attr=edge_attr,
+                                             y=y, n_nodes=num_nodes)
+            data_list.append(data)
+
+            if self.pre_filter is not None and not self.pre_filter(data):
+                continue
+            if self.pre_transform is not None:
+                data = self.pre_transform(data)
+
+            data_list.append(data)
+        
+        
+        torch.save(self.collate(data_list), self.processed_paths[0])
 
     def len(self):
         return len(self.processed_file_names)
@@ -52,7 +63,7 @@ class TaxiDataset(InMemoryDataset):
     def get(self, idx):
         data = torch.load(osp.join(self.processed_dir, f'data_{idx}.pt'))
         return data
-class PowerGraphDataModule(AbstractDataModule):
+class TaxiGraphDataModule(AbstractDataModule):
     def __init__(self, cfg, n_graphs=200):
         self.cfg = cfg
         self.datadir = cfg.dataset.datadir
