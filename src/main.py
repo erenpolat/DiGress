@@ -116,7 +116,7 @@ def main(cfg: DictConfig):
             datamodule = guacamol_dataset.GuacamolDataModule(cfg)
             dataset_infos = guacamol_dataset.Guacamolinfos(datamodule, cfg)
             train_smiles = None
-
+        
         elif dataset_config.name == 'moses':
             from datasets import moses_dataset
             datamodule = moses_dataset.MosesDataModule(cfg)
@@ -147,6 +147,36 @@ def main(cfg: DictConfig):
         model_kwargs = {'dataset_infos': dataset_infos, 'train_metrics': train_metrics,
                         'sampling_metrics': sampling_metrics, 'visualization_tools': visualization_tools,
                         'extra_features': extra_features, 'domain_features': domain_features}
+    elif dataset_config['name'] == 'taxi':
+        from datasets.spectre_dataset import TaxiDataModule, SpectreDatasetInfos
+        from analysis.spectre_utils import PlanarSamplingMetrics, SBMSamplingMetrics, Comm20SamplingMetrics
+        from analysis.visualization import NonMolecularVisualization
+
+        datamodule = TaxiDataModule(cfg)
+        if dataset_config['name'] == 'sbm':
+            sampling_metrics = SBMSamplingMetrics(datamodule)
+        elif dataset_config['name'] == 'comm-20':
+            sampling_metrics = Comm20SamplingMetrics(datamodule)
+        else:
+            sampling_metrics = PlanarSamplingMetrics(datamodule)
+
+        dataset_infos = SpectreDatasetInfos(datamodule, dataset_config)
+        train_metrics = TrainAbstractMetricsDiscrete() if cfg.model.type == 'discrete' else TrainAbstractMetrics()
+        visualization_tools = NonMolecularVisualization()
+
+        if cfg.model.type == 'discrete' and cfg.model.extra_features is not None:
+            extra_features = ExtraFeatures(cfg.model.extra_features, dataset_info=dataset_infos)
+        else:
+            extra_features = DummyExtraFeatures()
+        domain_features = DummyExtraFeatures()
+
+        dataset_infos.compute_input_output_dims(datamodule=datamodule, extra_features=extra_features,
+                                                domain_features=domain_features)
+
+        model_kwargs = {'dataset_infos': dataset_infos, 'train_metrics': train_metrics,
+                        'sampling_metrics': sampling_metrics, 'visualization_tools': visualization_tools,
+                        'extra_features': extra_features, 'domain_features': domain_features}
+
     else:
         raise NotImplementedError("Unknown dataset {}".format(cfg["dataset"]))
 

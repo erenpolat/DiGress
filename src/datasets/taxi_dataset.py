@@ -10,13 +10,10 @@ from src.datasets.abstract_dataset import AbstractDataModule, AbstractDatasetInf
 
 
 class TaxiDataset(InMemoryDataset):
-    def __init__(self, dataset_name, split, root, transform=None, pre_transform=None, pre_filter=None):
-        self.sbm_file = 'sbm_200.pt'
-        self.planar_file = 'planar_64_200.pt'
-        self.comm20_file = 'community_12_21_100.pt'
+    def __init__(self, split, root, transform=None, pre_transform=None, pre_filter=None):
         self.dataset_name = dataset_name
         self.split = split
-        self.num_graphs = 200
+        self.num_graphs = 182
         super().__init__(root, transform, pre_transform, pre_filter)
         self.data, self.slices = torch.load(self.processed_paths[0])
 
@@ -29,6 +26,10 @@ class TaxiDataset(InMemoryDataset):
             return [self.split + '.pt']
 
     def download(self):
+        pyg_graphs = []
+        for idx in range(self.num_graphs):
+            torch.save(tensor, f"{root}/tensor{idx}.pt")
+
         test_len = int(round(self.num_graphs * 0.2))
         train_len = int(round((self.num_graphs - test_len) * 0.8))
         val_len = self.num_graphs - train_len - test_len
@@ -42,7 +43,7 @@ class TaxiDataset(InMemoryDataset):
         val_data = []
         test_data = []
 
-        for i, adj in enumerate(adjs):
+        for i, adj in enumerate(pyg_graphs):
             if i in train_indices:
                 train_data.append(adj)
             elif i in val_indices:
@@ -59,32 +60,10 @@ class TaxiDataset(InMemoryDataset):
 
     def process(self):
         file_idx = {'train': 0, 'val': 1, 'test': 2}
-        raw_dataset = torch.load(self.raw_paths[file_idx[self.split]])
-
-        data_list = []
-        for adj in raw_dataset:
-            n = adj.shape[-1]
-            X = torch.ones(n, 1, dtype=torch.float)
-            y = torch.zeros([1, 0]).float()
-            edge_index, _ = torch_geometric.utils.dense_to_sparse(adj)
-            edge_attr = torch.zeros(edge_index.shape[-1], 2, dtype=torch.float)
-            edge_attr[:, 1] = 1
-            num_nodes = n * torch.ones(1, dtype=torch.long)
-            data = torch_geometric.data.Data(x=X, edge_index=edge_index, edge_attr=edge_attr,
-                                             y=y, n_nodes=num_nodes)
-            data_list.append(data)
-
-            if self.pre_filter is not None and not self.pre_filter(data):
-                continue
-            if self.pre_transform is not None:
-                data = self.pre_transform(data)
-
-            data_list.append(data)
+        data_list = torch.load(self.raw_paths[file_idx[self.split]])
         torch.save(self.collate(data_list), self.processed_paths[0])
 
-
-
-class SpectreGraphDataModule(AbstractDataModule):
+class TaxiDataModule(AbstractDataModule):
     def __init__(self, cfg, n_graphs=200):
         self.cfg = cfg
         self.datadir = cfg.dataset.datadir
@@ -92,11 +71,11 @@ class SpectreGraphDataModule(AbstractDataModule):
         root_path = os.path.join(base_path, self.datadir)
 
 
-        datasets = {'train': SpectreGraphDataset(dataset_name=self.cfg.dataset.name,
+        datasets = {'train': TaxiDataset(dataset_name=self.cfg.dataset.name,
                                                  split='train', root=root_path),
-                    'val': SpectreGraphDataset(dataset_name=self.cfg.dataset.name,
+                    'val': TaxiDataset(dataset_name=self.cfg.dataset.name,
                                         split='val', root=root_path),
-                    'test': SpectreGraphDataset(dataset_name=self.cfg.dataset.name,
+                    'test': TaxiDataset(dataset_name=self.cfg.dataset.name,
                                         split='test', root=root_path)}
         # print(f'Dataset sizes: train {train_len}, val {val_len}, test {test_len}')
 
@@ -107,7 +86,7 @@ class SpectreGraphDataModule(AbstractDataModule):
         return self.inner[item]
 
 
-class SpectreDatasetInfos(AbstractDatasetInfos):
+class TaxiDatasetInfos(AbstractDatasetInfos):
     def __init__(self, datamodule, dataset_config):
         self.datamodule = datamodule
         self.name = 'taxi_graphs'
