@@ -10,7 +10,7 @@ from src.datasets.abstract_dataset import AbstractDataModule, AbstractDatasetInf
 
 
 class TaxiDataset(InMemoryDataset):
-    def __init__(self, split, root, transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, split, root, dataset_name, transform=None, pre_transform=None, pre_filter=None):
         self.dataset_name = dataset_name
         self.split = split
         self.num_graphs = 182
@@ -28,12 +28,14 @@ class TaxiDataset(InMemoryDataset):
     def download(self):
         pyg_graphs = []
         for idx in range(self.num_graphs):
-            torch.save(tensor, f"{root}/tensor{idx}.pt")
+            tensor = torch.load(f"{root}/tensor{idx}.pt")
+            #print(f"{root}/tensor{idx}.pt")
+            pyg_graphs.append(tensor)
 
         test_len = int(round(self.num_graphs * 0.2))
         train_len = int(round((self.num_graphs - test_len) * 0.8))
         val_len = self.num_graphs - train_len - test_len
-        indices = torch.randperm(self.num_graphs, generator=g_cpu)
+        indices = torch.randperm(self.num_graphs)
         print(f'Dataset sizes: train {train_len}, val {val_len}, test {test_len}')
         train_indices = indices[:train_len]
         val_indices = indices[train_len:train_len + val_len]
