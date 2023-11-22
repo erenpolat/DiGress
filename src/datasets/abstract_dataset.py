@@ -48,6 +48,8 @@ class AbstractDataModule(LightningDataset):
     def edge_counts(self):
         num_classes = None
         for data in self.train_dataloader():
+            print(data.edge_attr.shape)
+            print(data)
             num_classes = data.edge_attr.shape[1]
             break
 

@@ -2,9 +2,10 @@ import os
 import pathlib
 
 import torch
+import torch.nn.functional as F 
 from torch.utils.data import random_split
 import torch_geometric.utils
-from torch_geometric.data import InMemoryDataset, download_url
+from torch_geometric.data import InMemoryDataset, download_url, Data
 
 from src.datasets.abstract_dataset import AbstractDataModule, AbstractDatasetInfos
 
@@ -14,6 +15,7 @@ class TaxiDataset(InMemoryDataset):
         self.dataset_name = dataset_name
         self.split = split
         self.num_graphs = 182
+        self.root = root
         super().__init__(root, transform, pre_transform, pre_filter)
         self.data, self.slices = torch.load(self.processed_paths[0])
 
@@ -27,8 +29,9 @@ class TaxiDataset(InMemoryDataset):
 
     def download(self):
         pyg_graphs = []
+        print("BURDA HACI")
         for idx in range(self.num_graphs):
-            tensor = torch.load(f"{root}/tensor{idx}.pt")
+            tensor = torch.load(f"{self.root}/tensor{idx}.pt")
             #print(f"{root}/tensor{idx}.pt")
             pyg_graphs.append(tensor)
 
@@ -63,6 +66,13 @@ class TaxiDataset(InMemoryDataset):
     def process(self):
         file_idx = {'train': 0, 'val': 1, 'test': 2}
         data_list = torch.load(self.raw_paths[file_idx[self.split]])
+        max_flow = 30
+        #we can add preprocessing here
+        for idx, graph in enumerate(data_list):
+            temp_edge_attr = graph.edge_attr
+            edge_attr = F.one_hot(temp_edge_attr.long(), max_flow + 1).to(torch.float)
+            node_attr = torch.ones(graph.num_nodes)
+            data_list[idx] = Data(graph.edge_index, x = node_attr, edge_attr = edge_attr, num_nodes = graph.num_nodes)
         torch.save(self.collate(data_list), self.processed_paths[0])
 
 class TaxiDataModule(AbstractDataModule):
@@ -71,7 +81,8 @@ class TaxiDataModule(AbstractDataModule):
         self.datadir = cfg.dataset.datadir
         base_path = pathlib.Path(os.path.realpath(__file__)).parents[2]
         root_path = os.path.join(base_path, self.datadir)
-
+        print("Rootpath", root_path)
+        print("datadir", self.datadir)
 
         datasets = {'train': TaxiDataset(dataset_name=self.cfg.dataset.name,
                                                  split='train', root=root_path),
