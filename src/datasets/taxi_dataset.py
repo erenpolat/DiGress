@@ -70,9 +70,12 @@ class TaxiDataset(InMemoryDataset):
         #we can add preprocessing here
         for idx, graph in enumerate(data_list):
             temp_edge_attr = graph.edge_attr
-            edge_attr = F.one_hot(temp_edge_attr.long(), max_flow + 1).to(torch.float)
-            node_attr = torch.ones(graph.num_nodes)
-            data_list[idx] = Data(graph.edge_index, x = node_attr, edge_attr = edge_attr, num_nodes = graph.num_nodes)
+            edge_attr = F.one_hot(temp_edge_attr.long(), max_flow + 2).to(torch.float)
+            node_attr = torch.ones(graph.x.shape[0], 1)
+            data_list[idx].edge_attr = edge_attr
+            data_list[idx].x = node_attr
+            data_list[idx].n_nodes = data_list[idx].x.shape[0].unsqueeze()
+            data_list[idx].num_nodes = data_list[idx].x.shape[0]
         torch.save(self.collate(data_list), self.processed_paths[0])
 
 class TaxiDataModule(AbstractDataModule):
