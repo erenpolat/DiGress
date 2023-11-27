@@ -51,13 +51,15 @@ def unnormalize(X, E, y, norm_values, norm_biases, node_mask, collapse=False):
 
 
 def to_dense(x, edge_index, edge_attr, batch):
+   
+    #print("beforeTodense Batch size", batch.shape)
+    #print("beforeTodense Edgeindex[0]", edge_index.shape)
+    #print("beforeTodense x", x.shape)
     X, node_mask = to_dense_batch(x=x, batch=batch)
     # node_mask = node_mask.float()
     edge_index, edge_attr = torch_geometric.utils.remove_self_loops(edge_index, edge_attr)
     # TODO: carefully check if setting node_mask as a bool breaks the continuous case
     max_num_nodes = X.size(1)
-    print("Batch size", batch.shape)
-    print("Edgeindex[0]", edge_index[0].shape)
     E = to_dense_adj(edge_index=edge_index, batch=batch, edge_attr=edge_attr, max_num_nodes=max_num_nodes)
     E = encode_no_edge(E)
 
@@ -117,6 +119,7 @@ class PlaceHolder:
 
     def mask(self, node_mask, collapse=False):
         x_mask = node_mask.unsqueeze(-1)          # bs, n, 1
+        #print("xmask",x_mask.shape)
         e_mask1 = x_mask.unsqueeze(2)             # bs, n, 1, 1
         e_mask2 = x_mask.unsqueeze(1)             # bs, 1, n, 1
 
@@ -129,6 +132,8 @@ class PlaceHolder:
         else:
             self.X = self.X * x_mask
             self.E = self.E * e_mask1 * e_mask2
+            #print("X", x_mask.shape)
+            #print("E",self.E.shape)
             assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
         return self
 
