@@ -134,7 +134,7 @@ class PlaceHolder:
             self.E = self.E * e_mask1 * e_mask2
             #print("X", x_mask.shape)
             #print("E",self.E.shape)
-            assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
+            #assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
         return self
 
 

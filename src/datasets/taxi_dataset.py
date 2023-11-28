@@ -74,12 +74,13 @@ class TaxiDataset(InMemoryDataset):
             print("temp:", temp_edge_attr)
             edge_attr = F.one_hot(temp_edge_attr.long(), max_flow + 1).to(torch.float)
             edge_index = graph.edge_index
-            node_attr = torch.ones(graph.x.shape[0], 1)
-            print("Edge index shape:", graph.edge_index.shape)
-            print("Node attr shape:", node_attr.shape)
-            print("Edge attr shape:", edge_attr.shape)
-            y = torch.zeros([1, 0]).float()
-            #data_list[idx] = Data(edge_index=graph.edge_index, x = node_attr, edge_attr=edge_attr, y=y)
+
+            num_nodes = edge_index.max().item() + 1
+            print("Num nodes", num_nodes)
+            # Node attr
+            node_attr = torch.ones(num_nodes, 1)
+            y = torch.zeros([1, 0]).float() 
+               
             data = Data(edge_index=edge_index, x = node_attr, edge_attr=edge_attr, y=y)
             data_list_processed.append(data)
         torch.save(self.collate(data_list_processed), self.processed_paths[0])
